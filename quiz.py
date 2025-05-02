@@ -2,7 +2,7 @@ import streamlit as st
 import time
 import pandas as pd
 from datetime import datetime
-from fpdf import FPDF
+from fpdf import FPDF  # <-- this still works with fpdf2
 from io import BytesIO
 import random
 
