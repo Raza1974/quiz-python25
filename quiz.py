@@ -1,4 +1,3 @@
-# Python MCQ Quiz App using Streamlit
 import streamlit as st
 import time
 import pandas as pd
@@ -7,14 +6,22 @@ from fpdf import FPDF
 from io import BytesIO
 import random
 
+# Page config
 st.set_page_config(page_title="Python Quiz App", page_icon="🧠")
 st.title("🧠 Python MCQ Quiz App")
 st.markdown("Answer all questions, and click **Submit Quiz** to see your score.")
 
+# Author & social info
+st.sidebar.markdown("### 👨‍💻 Author")
+st.sidebar.write("**Syed Mohammad Raza Rizvi**")
+st.sidebar.write("Governor Sindh IT Initiative Student")
+st.sidebar.write("[📧 Email](mailto:asimr6573@gmail.com)")
+st.sidebar.write("[🔗 LinkedIn](https://www.linkedin.com/in/rizviraza74)")
+
 # Username input
 name = st.text_input("👤 Enter your name:", key="username")
 
-# Timer (40 minutes = 2400 seconds)
+# Timer (40 minutes)
 with st.expander("⏱ Timer (40 min)", expanded=True):
     if "start_time" not in st.session_state:
         st.session_state.start_time = time.time()
@@ -26,7 +33,7 @@ with st.expander("⏱ Timer (40 min)", expanded=True):
     if remaining == 0:
         st.error("⏰ Time's up! Please submit your quiz now.")
 
-# Quiz Questions (List of dictionaries with questions and options)
+# Questions (shuffled every refresh)
 questions = [
     {"question": "What is the output of print(type([]))?", "options": ["<class 'list'>", "<class 'tuple'>", "<class 'dictionary'>", "<class 'set'>"], "answer": "<class 'list'>"},
     {"question": "Which of the following is a mutable data type in Python?", "options": ["String", "Tuple", "List", "Integer"], "answer": "List"},
@@ -50,29 +57,23 @@ questions = [
     {"question": "Which of the following is the correct way to create a tuple in Python?", "options": ["tuple = (1, 2, 3)", "tuple = [1, 2, 3]", "tuple = {1, 2, 3}", "tuple = <1, 2, 3>"], "answer": "tuple = (1, 2, 3)"}
 ]
 
-# Shuffle the questions to randomize them on refresh
+# Shuffle
 random.shuffle(questions)
 
+# Quiz Form
 score = 0
 user_answers = {}
 submitted = False
 
-# Quiz Form
 with st.form("quiz_form"):
     for idx, q in enumerate(questions):
-        # Display question number in the randomized order
         st.subheader(f"Q{idx+1}. {q['question']}")
-        selected = st.radio(
-            f"Choose your answer for Q{idx+1}",
-            q["options"],
-            key=f"q_{idx}",
-            index=None  # 🛑 No default selection
-        )
+        selected = st.radio(f"Choose your answer for Q{idx+1}", q["options"], key=f"q_{idx}", index=None)
         user_answers[q["question"]] = selected
 
     submitted = st.form_submit_button("Submit Quiz")
 
-# After Submission
+# After submission
 if submitted:
     if not name:
         st.warning("⚠️ Please enter your name before submitting.")
@@ -90,7 +91,6 @@ if submitted:
 
         st.markdown(f"## 🏁 Final Score for **{name}**: **{score} / {len(questions)}**")
 
-        # Feedback
         if score == len(questions):
             st.balloons()
             st.success("🏆 Perfect score! You’re a Python Pro!")
@@ -101,7 +101,7 @@ if submitted:
         else:
             st.error("📚 Don't worry! Review and try again.")
 
-        # Save results
+        # Save result
         result = {
             "Name": name,
             "Score": score,
@@ -114,9 +114,9 @@ if submitted:
             df.to_csv("quiz_results.csv", mode='a', index=False, header=not pd.io.common.file_exists("quiz_results.csv"))
             st.success("✅ Your result has been saved.")
         except Exception as e:
-            st.error(f"Error saving result: {e}")       
+            st.error(f"Error saving result: {e}")
 
-        # PDF Result Download
+        # PDF Export
         def create_pdf(result_data):
             pdf = FPDF()
             pdf.add_page()
@@ -128,26 +128,15 @@ if submitted:
                 pdf.cell(200, 10, txt=f"{key}: {value}", ln=True)
 
             pdf.ln(10)
-            pdf.cell(200, 10, txt="Thank you for participating!", ln=True)
+            pdf.set_font("Arial", "I", size=12)
+            pdf.cell(200, 10, txt="Prepared by: Syed Mohammad Raza Rizvi", ln=True)
+            pdf.cell(200, 10, txt="Governor Sindh IT Initiative Student", ln=True)
 
-            pdf_output = pdf.output(dest='S').encode('latin1')
-            return BytesIO(pdf_output)
+            return BytesIO(pdf.output(dest="S").encode("latin1"))
 
         pdf_data = create_pdf(result)
-        st.download_button(
-            label="Download Result as PDF",
-            data=pdf_data,
-            file_name="quiz_result.pdf",
-            mime="application/pdf"
-        )
-        
-        # Social Links (LinkedIn, Email)
-        st.markdown("---")
-        st.subheader("📱 Connect with me:")
-        st.markdown("[LinkedIn](https://www.linkedin.com/in/rizviraza74)")
-        st.markdown("📧 Email: [asimr6573@gmail.com](mailto:asimr6573@gmail.com)")
+        st.download_button("Download Result as PDF", data=pdf_data, file_name="quiz_result.pdf", mime="application/pdf")
 
-        # Refresh Option
         if st.button("Refresh Quiz"):
             st.session_state.clear()
             st.experimental_rerun()
