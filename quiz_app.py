@@ -2,38 +2,41 @@ import streamlit as st
 import time
 import pandas as pd
 from datetime import datetime
-from fpdf import FPDF  # <-- this still works with fpdf2
+from fpdf import FPDF
 from io import BytesIO
 import random
+import os
 
 # Page config
 st.set_page_config(page_title="Python Quiz App", page_icon="🧠")
 st.title("🧠 Python MCQ Quiz App")
 st.markdown("Answer all questions, and click **Submit Quiz** to see your score.")
 
-# Author & social info
+# Sidebar info
 st.sidebar.markdown("### 👨‍💻 Author")
 st.sidebar.write("**Syed Mohammad Raza Rizvi**")
 st.sidebar.write("Governor Sindh IT Initiative Student")
 st.sidebar.write("[📧 Email](mailto:asimr6573@gmail.com)")
 st.sidebar.write("[🔗 LinkedIn](https://www.linkedin.com/in/rizviraza74)")
 
-# Username input
-name = st.text_input("👤 Enter your name:", key="username")
+# Name input
+name = st.text_input("👤 Enter your name:")
 
-# Timer (40 minutes)
+# Timer setup
+if "start_time" not in st.session_state:
+    st.session_state.start_time = time.time()
+
 with st.expander("⏱ Timer (40 min)", expanded=True):
-    if "start_time" not in st.session_state:
-        st.session_state.start_time = time.time()
-
     elapsed = time.time() - st.session_state.start_time
-    remaining = max(0, 2400 - int(elapsed))  # 2400 seconds = 40 minutes
+    remaining = max(0, 2400 - int(elapsed))
     mins, secs = divmod(remaining, 60)
     st.info(f"⏳ Time Remaining: {mins:02d}:{secs:02d}")
+
     if remaining == 0:
         st.error("⏰ Time's up! Please submit your quiz now.")
+        st.stop()
 
-# Questions (shuffled every refresh)
+# Questions list
 questions = [
     {"question": "What is the output of print(type([]))?", "options": ["<class 'list'>", "<class 'tuple'>", "<class 'dictionary'>", "<class 'set'>"], "answer": "<class 'list'>"},
     {"question": "Which of the following is a mutable data type in Python?", "options": ["String", "Tuple", "List", "Integer"], "answer": "List"},
@@ -46,7 +49,7 @@ questions = [
     {"question": "Which data type is used to store key-value pairs?", "options": ["List", "Tuple", "Dictionary", "Set"], "answer": "Dictionary"},
     {"question": "What will be the output of x = 'Python'; print(x[0])?", "options": ["P", "y", "n", "x"], "answer": "P"},
     {"question": "What does the __init__() function do in a class?", "options": ["Initializes the class attributes", "Is used for inheritance", "Is used to create a new object", "Is used to delete an object"], "answer": "Initializes the class attributes"},
-    {"question": "Which of the following functions is used to get the remainder of a division in Python?", "options": ["divmod()", "remainder()", "mod()", "div()"], "answer": "divmod()"},
+    {"question": "Which of the following functions is used to get the remainder of a division in Python?", "options": ["divmod()", "remainder()", "mod()", "%"], "answer": "%"},
     {"question": "How can you create a set in Python?", "options": ["set = {1, 2, 3}", "set = (1, 2, 3)", "set = [1, 2, 3]", "set = (1:2, 2:3)"], "answer": "set = {1, 2, 3}"},
     {"question": "What is the output of print(3 ** 2) in Python?", "options": ["6", "9", "3", "None"], "answer": "9"},
     {"question": "Which method can be used to remove an element from a set in Python?", "options": ["remove()", "del()", "pop()", "discard()"], "answer": "remove()"},
@@ -57,86 +60,76 @@ questions = [
     {"question": "Which of the following is the correct way to create a tuple in Python?", "options": ["tuple = (1, 2, 3)", "tuple = [1, 2, 3]", "tuple = {1, 2, 3}", "tuple = <1, 2, 3>"], "answer": "tuple = (1, 2, 3)"}
 ]
 
-# Shuffle
-random.shuffle(questions)
+# Shuffle once
+if "questions_shuffled" not in st.session_state:
+    st.session_state.questions_shuffled = random.sample(questions, len(questions))
 
-# Quiz Form
+questions = st.session_state.questions_shuffled
+
+# Quiz form
 score = 0
 user_answers = {}
-submitted = False
 
 with st.form("quiz_form"):
     for idx, q in enumerate(questions):
         st.subheader(f"Q{idx+1}. {q['question']}")
-        selected = st.radio(f"Choose your answer for Q{idx+1}", q["options"], key=f"q_{idx}", index=None)
+        selected = st.radio(f"Your answer for Q{idx+1}", q["options"], key=f"q_{idx}", index=None)
         user_answers[q["question"]] = selected
 
     submitted = st.form_submit_button("Submit Quiz")
 
-# After submission
+# Result
 if submitted:
     if not name:
-        st.warning("⚠️ Please enter your name before submitting.")
+        st.warning("⚠️ Please enter your name.")
     else:
-        st.write("---")
         st.header("📊 Results")
         for idx, q in enumerate(questions):
             user_choice = user_answers[q["question"]]
             if user_choice == q["answer"]:
-                st.success(f"✅ Q{idx+1}. {q['question']} — Correct!")
+                st.success(f"✅ Q{idx+1}. Correct!")
                 score += 1
             else:
-                st.error(f"❌ Q{idx+1}. {q['question']} — Incorrect. You chose: {user_choice}")
-                st.info(f"✔️ Correct answer: {q['answer']}")
+                st.error(f"❌ Q{idx+1}. Incorrect. Correct: {q['answer']}")
 
-        st.markdown(f"## 🏁 Final Score for **{name}**: **{score} / {len(questions)}**")
-
+        st.markdown(f"### Final Score: **{score} / {len(questions)}**")
         if score == len(questions):
             st.balloons()
-            st.success("🏆 Perfect score! You’re a Python Pro!")
         elif score >= 14:
-            st.info("🎉 Great job! Keep going!")
+            st.info("🎉 Great job!")
         elif score >= 10:
-            st.warning("🙂 Good effort. Some revision will help.")
+            st.warning("🙂 Good effort.")
         else:
-            st.error("📚 Don't worry! Review and try again.")
+            st.error("📚 Review and try again.")
 
-        # Save result
+        # Save CSV
         result = {
             "Name": name,
             "Score": score,
             "Total": len(questions),
             "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
-
         df = pd.DataFrame([result])
-        try:
-            df.to_csv("quiz_results.csv", mode='a', index=False, header=not pd.io.common.file_exists("quiz_results.csv"))
-            st.success("✅ Your result has been saved.")
-        except Exception as e:
-            st.error(f"Error saving result: {e}")
+        file_exists = os.path.isfile("quiz_results.csv")
+        df.to_csv("quiz_results.csv", mode="a", index=False, header=not file_exists)
 
-        # PDF Export
-        def create_pdf(result_data):
+        # PDF export
+        def create_pdf(data):
             pdf = FPDF()
             pdf.add_page()
             pdf.set_font("Arial", size=14)
-            pdf.cell(200, 10, txt="Python MCQ Quiz Result", ln=True, align='C')
+            pdf.cell(200, 10, txt="Python Quiz Result", ln=True, align='C')
             pdf.ln(10)
-
-            for key, value in result_data.items():
-                pdf.cell(200, 10, txt=f"{key}: {value}", ln=True)
-
-            pdf.ln(10)
-            pdf.set_font("Arial", "I", size=12)
-            pdf.cell(200, 10, txt="Prepared by: Syed Mohammad Raza Rizvi", ln=True)
-            pdf.cell(200, 10, txt="Governor Sindh IT Initiative Student", ln=True)
-
+            for k, v in data.items():
+                pdf.cell(200, 10, txt=f"{k}: {v}", ln=True)
             return BytesIO(pdf.output(dest="S").encode("latin1"))
 
         pdf_data = create_pdf(result)
-        st.download_button("Download Result as PDF", data=pdf_data, file_name="quiz_result.pdf", mime="application/pdf")
+        st.download_button("📄 Download Result as PDF", data=pdf_data, file_name=f"{name}_result.pdf", mime="application/pdf")
+        st.success("Your result has been saved and can be downloaded as a PDF.")
+        st.balloons()
 
-        if st.button("Refresh Quiz"):
-            st.session_state.clear()
-            st.experimental_rerun()
+# Refresh quiz
+if st.button("🔄 Refresh Quiz"):
+    st.session_state.clear()
+    st.rerun()
