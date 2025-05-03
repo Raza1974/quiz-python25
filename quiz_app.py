@@ -118,6 +118,10 @@ if submitted:
         df.to_csv("quiz_results.csv", mode="a", index=False, header=not file_exists)
 
         st.success("✅ Your result has been saved successfully.")
+    
+    
+        st.balloons()
+
 
 # Refresh quiz
 if st.button("🔄 Refresh Quiz"):
