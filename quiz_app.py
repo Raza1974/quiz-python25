@@ -2,8 +2,6 @@ import streamlit as st
 import time
 import pandas as pd
 from datetime import datetime
-from fpdf import FPDF
-from io import BytesIO
 import random
 import os
 
@@ -113,20 +111,7 @@ if submitted:
         file_exists = os.path.isfile("quiz_results.csv")
         df.to_csv("quiz_results.csv", mode="a", index=False, header=not file_exists)
 
-        # PDF export
-        def create_pdf(data):
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", size=14)
-            pdf.cell(200, 10, txt="Python Quiz Result", ln=True, align='C')
-            pdf.ln(10)
-            for k, v in data.items():
-                pdf.cell(200, 10, txt=f"{k}: {v}", ln=True)
-            return BytesIO(pdf.output(dest="S").encode("latin1"))
-
-        pdf_data = create_pdf(result)
-        st.download_button("📄 Download Result as PDF", data=pdf_data, file_name=f"{name}_result.pdf", mime="application/pdf")
-        st.success("Your result has been saved and can be downloaded as a PDF.")
+        st.success("Your result has been saved successfully.")
         st.balloons()
 
 # Refresh quiz
