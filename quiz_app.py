@@ -1,3 +1,4 @@
+
 import streamlit as st
 import time
 import pandas as pd
@@ -17,8 +18,11 @@ st.sidebar.write("Governor Sindh IT Initiative Student")
 st.sidebar.write("[📧 Email](mailto:asimr6573@gmail.com)")
 st.sidebar.write("[🔗 LinkedIn](https://www.linkedin.com/in/rizviraza74)")
 
-# Name input
-name = st.text_input("👤 Enter your name:")
+# User input section
+st.subheader("📝 Enter Your Details")
+name = st.text_input("👤 Name:")
+email = st.text_input("📧 Email Address:")
+roll_no = st.text_input("🎓 Roll Number:")
 
 # Timer setup
 if "start_time" not in st.session_state:
@@ -78,8 +82,8 @@ with st.form("quiz_form"):
 
 # Result
 if submitted:
-    if not name:
-        st.warning("⚠️ Please enter your name.")
+    if not name or not email or not roll_no:
+        st.warning("⚠️ Please enter your name, email, and roll number.")
     else:
         st.header("📊 Results")
         for idx, q in enumerate(questions):
@@ -100,9 +104,11 @@ if submitted:
         else:
             st.error("📚 Review and try again.")
 
-        # Save CSV
+        # Save to CSV
         result = {
             "Name": name,
+            "Email": email,
+            "Roll No": roll_no,
             "Score": score,
             "Total": len(questions),
             "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -111,8 +117,7 @@ if submitted:
         file_exists = os.path.isfile("quiz_results.csv")
         df.to_csv("quiz_results.csv", mode="a", index=False, header=not file_exists)
 
-        st.success("Your result has been saved successfully.")
-        st.balloons()
+        st.success("✅ Your result has been saved successfully.")
 
 # Refresh quiz
 if st.button("🔄 Refresh Quiz"):
